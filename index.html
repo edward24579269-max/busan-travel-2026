@@ -17,7 +17,35 @@ else {
  let version=null,saveTimer=null,busy=false;
  const setEditor=(allowed)=>{window.canEdit=allowed;document.body.classList.toggle('is-editor',allowed);document.querySelectorAll('button[onclick],input[onchange]').forEach(el=>{if(el.closest('#cloudPanel'))return;const call=el.getAttribute('onclick')||el.getAttribute('onchange')||'';if(/addPlace|addTodo|editMeta|importData|saveMeta|save\(|removePlace/.test(call))el.style.display=allowed?'':'none'});document.getElementById('newTodo')?.toggleAttribute('disabled',!allowed);document.querySelectorAll('#checks input').forEach(el=>el.disabled=!allowed);};
  async function load(){const {data:row,error}=await client.from('trip_documents').select('content,version').eq('id','busan-2026').single();if(error){status.textContent='讀取失敗：'+error.message;return}const cloud=row.content||{};const rawDays=cloud.days||[];data={days:rawDays.map(d=>Array.isArray(d)?d:(Array.isArray(d.items)?d.items:[])),todo:Array.isArray(cloud.todo)?cloud.todo:initial.todo,flight:Array.isArray(cloud.flight)?cloud.flight:initial.flight,stay:Array.isArray(cloud.stay)?cloud.stay:initial.stay};if(data.days.length!==3){status.textContent='行程資料格式錯誤';return}version=row.version;render();setEditor(window.canEdit);status.textContent=window.canEdit?'已同步・可編輯':'公開唯讀・已同步';}
- async function refreshAuth(){const {data:{user}}=await client.auth.getUser();let allowed=false;if(user){const {data:role,error}=await client.from('trip_editors').select('email').eq('email',user.email.toLowerCase()).maybeSingle();allowed=!!role&&!error;}setEditor(allowed);email.hidden=!!user;login.hidden=!!user;logout.hidden=!user;await load();if(user&&!allowed)status.textContent='此帳號尚未獲得編輯權限';}
+ async function refreshAuth(){
+  const {data:{user},error:authError}=await client.auth.getUser();
+  let allowed=false;
+  let roleError=null;
+  if(user){
+    const result=await client.from('trip_editors')
+      .select('email')
+      .ilike('email',user.email)
+      .maybeSingle();
+    allowed=!!result.data&&!result.error;
+    roleError=result.error;
+  }
+  setEditor(allowed);
+  email.hidden=!!user;
+  login.hidden=!!user;
+  logout.hidden=!user;
+  await load();
+  if(authError){
+    status.textContent='登入驗證失敗：'+authError.message;
+  }else if(!user){
+    status.textContent='尚未登入・公開唯讀';
+  }else if(roleError){
+    status.textContent='權限查詢失敗：'+roleError.message;
+  }else if(!allowed){
+    status.textContent='已登入但未授權：'+user.email;
+  }else{
+    status.textContent='已登入・可編輯：'+user.email;
+  }
+}
  login.onclick=async()=>{const value=email.value.trim();if(!value){alert('請輸入 Email');return}const {error}=await client.auth.signInWithOtp({email:value,options:{emailRedirectTo:location.origin+location.pathname}});status.textContent=error?'寄送失敗：'+error.message:'登入連結已寄出，請檢查信箱';};
  logout.onclick=async()=>{await client.auth.signOut();await refreshAuth()};
  window.queueCloudSave=()=>{if(!window.canEdit)return;clearTimeout(saveTimer);status.textContent='正在儲存…';saveTimer=setTimeout(async()=>{if(busy)return;busy=true;const snapshot=JSON.parse(JSON.stringify(data));const {data:result,error}=await client.rpc('update_trip_document',{p_id:'busan-2026',p_content:snapshot,p_expected_version:version});busy=false;if(error){status.textContent='儲存失敗／版本衝突，請先匯出備份再重新整理：'+error.message;return}version=result;status.textContent='☁ 已儲存到雲端';},500)};

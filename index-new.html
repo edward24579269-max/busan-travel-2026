@@ -66,6 +66,10 @@ body{background:#f9f1e5!important;background-image:none!important}
 <section id="expenses" class="card">
 <h2>♡ 旅費小帳本</h2>
 <p class="exp-note">拍照辨識收據或手動記帳，只支援韓幣 KRW、台幣 TWD。照片辨識後請確認金額再存入；原始照片不會上傳到行程雲端。</p>
+<div class="exp-form" style="margin-bottom:12px">
+<label>旅伴 1 名稱<input id="expPerson0" maxlength="30" value="我" onchange="updateExpensePeople()"></label>
+<label>旅伴 2 名稱<input id="expPerson1" maxlength="30" value="朋友" onchange="updateExpensePeople()"></label>
+</div>
 <div class="exp-grid">
  <div class="exp-stat"><small>🇰🇷 韓幣支出</small><strong id="expKrw">₩0</strong></div>
  <div class="exp-stat"><small>🇹🇼 台幣支出</small><strong id="expTwd">NT$0</strong></div>
@@ -82,13 +86,22 @@ body{background:#f9f1e5!important;background-image:none!important}
 <div class="exp-form">
 <label>日期<input type="date" id="expDate" value="2026-11-06" min="2026-11-06" max="2026-11-08"></label>
 <label>項目／店名<input type="text" id="expName" placeholder="例如：韓式烤肉" maxlength="100"></label>
-<label>金額<input type="number" id="expAmount" min="0.01" step="0.01" placeholder="請確認收據總額"></label>
-<label>幣別<select id="expCurrency"><option value="KRW">🇰🇷 韓幣 KRW</option><option value="TWD">🇹🇼 台幣 TWD</option></select></label>
+<label>金額<input type="number" id="expAmount" min="0.01" step="0.01" oninput="updateExpenseSplitFields()" placeholder="請確認收據總額"></label>
+<label>幣別<select id="expCurrency" onchange="updateExpenseSplitFields()"><option value="KRW">🇰🇷 韓幣 KRW</option><option value="TWD">🇹🇼 台幣 TWD</option></select></label>
+<label>誰登記<select id="expRegistrar"></select></label>
+<label>誰付款<select id="expPayer" onchange="updateExpenseSplitFields()"></select></label>
+<label>分帳方式<select id="expSplitMode" onchange="updateExpenseSplitFields()"><option value="equal">兩人平分</option><option value="custom">自訂各自應付</option><option value="payer">付款者自行負擔</option></select></label>
 <label>類別<select id="expCategory"><option>餐飲</option><option>交通</option><option>購物</option><option>住宿</option><option>醫美</option><option>門票</option><option>其他</option></select></label>
 <label>備註<input type="text" id="expMemo" placeholder="選填" maxlength="200"></label>
 </div>
+<div id="expSplitPreview" class="exp-note" style="margin-top:10px"></div>
+<div id="expCustomSplit" class="exp-form" style="display:none">
+<label><span id="expShareLabel0">我應付</span><input type="number" id="expShare0" min="0" step="0.01" oninput="updateExpenseSplitFields()"></label>
+<label><span id="expShareLabel1">朋友應付</span><input type="number" id="expShare1" min="0" step="0.01" oninput="updateExpenseSplitFields()"></label>
+</div>
 <div class="row" style="margin-top:10px;gap:8px"><button type="button" onclick="saveExpense()">確認並存入</button><button type="button" onclick="document.getElementById('expFormWrap').style.display='none'">取消</button></div>
 </div>
+<div id="expSettlement" style="margin-top:14px"></div>
 <div id="expEntries" style="margin-top:12px"></div>
 </section>
 <div class="row"><button onclick="exportData()">匯出備份 JSON</button><button onclick="document.getElementById('importFile').click()">匯入備份</button><input type="file" accept="application/json" id="importFile" class="hidden" onchange="importData(event)"></div><p class="small">授權編輯者的修改會同步至 Supabase 雲端，建議定期匯出備份。Google Maps 和 NAVER Map 可用景點名稱搜尋，搜尋結果請自行核對。行程時間依先前整理的 Funliday 清單建立，請核對原始行程；提醒僅在開啟網頁時顯示。雲端衝突時會停止自動覆蓋，請先匯出備份。</p></main><footer>made with ♡ · BUSAN TRAVEL JOURNAL</footer><dialog id="editor"><form id="placeForm"><h2 id="dialogTitle">編輯景點</h2><div class="time-mode-choice" role="group" aria-label="景點時間模式"><label><input type="radio" name="eTimeMode" value="free" checked> 🌿 自由行程</label><label><input type="radio" name="eTimeMode" value="fixed"> 📌 固定時間</label></div><p class="time-mode-note" id="eTimeModeHint">自由行程不需填時間，可以直接拖曳調整順序。</p><label id="eTimeLabel" hidden>固定開始／預約時間<input id="eTime" type="time"></label><label>景點名稱<input id="eName" required></label><label>📝 景點備註（選填）<textarea id="eNote" placeholder="必吃餐點、預約資訊、注意事項、地址…"></textarea></label><label>交通方式<select id="eTransport"><option>未設定</option><option>步行</option><option>地鐵</option><option>公車</option><option>計程車</option><option>火車</option><option>高速巴士</option><option>膠囊列車 🚝</option><option>其他</option></select></label><div class="route-controls"><label>停留時間（分鐘）<input id="eStayMin" type="number" min="0" max="1440" step="1" placeholder="留空使用建議值，或自行輸入如 20"></label><label>前往下一站交通（分鐘）<input id="eTravelMin" type="number" min="0" max="1440" step="1" placeholder="例如 20"></label></div><p class="route-hint">停留分鐘數可直接自行輸入，會優先於系統建議值；留空才依景點類型暫估，並非真實遊客平均。東大邱轉運中心 → 海雲台預設高速巴士約 120 分鐘（含候車緩衝）；膠囊列車（尾浦 ↔ 青沙浦）預設單程 30 分鐘，不含候車時間，均可手動調整；其餘交通時間請參考 NAVER Map。最後一站不需要填交通時間。</p><section class="hours-sync-panel"><strong>🔎 店家營業時間自動查詢（Google Places）</strong><p class="route-hint">首次使用需設定自己的 Google Maps JavaScript API 金鑰並啟用 Places API（可能產生費用）。金鑰只存在此瀏覽器，不會寫入共同編輯資料。查詢會按店名配對，請確認結果是否正確。</p><div class="route-controls"><label>Google API 金鑰（只儲存在本機）<input id="hoursApiKey" type="password" autocomplete="off" placeholder="貼上 Google Maps API 金鑰"></label><button type="button" id="hoursLookupButton" onclick="lookupEditorHours()">🔎 自動查詢這家店</button></div><p id="hoursLookupStatus" class="route-hint" aria-live="polite"></p></section><div class="route-controls"><label>🕒 營業開始（選填）<input id="eOpenTime" type="time"></label><label>🕒 營業結束（選填）<input id="eCloseTime" type="time"></label></div><p class="route-hint">可以手動填入，也可以使用上方 Google Places 查詢；NAVER 分享網址無法直接讀取營業時間。查不到會顯示「尚未取得」。跨午夜營業也支援。</p><label>Google Maps 網址（選填）<input id="eMap" type="url" placeholder="https://maps.app.goo.gl/..."></label><label>NAVER Map 網址（選填）<input id="eNaverMap" type="url" placeholder="https://map.naver.com/..."></label><p class="route-hint">可直接貼上 NAVER Map 景點分享連結；留空時使用景點名稱搜尋。</p><label><input type="checkbox" id="eMust" style="width:auto"> 必去</label><div class="row editor-buttons"><button type="submit">💾 儲存景點</button><button type="button" onclick="editor.close()">取消</button></div></form></dialog><dialog id="metaDialog"><h2 id="metaTitle"></h2><label id="metaLabel1">內容<input id="meta1"></label><label id="metaLabel2">內容<input id="meta2"></label><div class="row"><button onclick="saveMeta()">儲存</button><button onclick="metaDialog.close()">取消</button></div></dialog><script>
@@ -342,13 +355,67 @@ function finishPlaceDrag(cancelled,e){
 function move(i,offset){if(!window.canEdit)return;const arr=data.days[day],j=i+offset;if(j<0||j>=arr.length)return;[arr[i],arr[j]]=[arr[j],arr[i]];save();render()}function removePlace(i){if(!window.canEdit)return;if(confirm('確定刪除這個景點？')){data.days[day].splice(i,1);save();render()}}function addTodo(){if(!window.canEdit)return;const name=$('newTodo').value.trim();if(!name)return;data.todo.push({name,done:false});$('newTodo').value='';save();render()}function editMeta(type){if(!window.canEdit)return;metaType=type;$('metaTitle').textContent=type==='flight'?'編輯航班':'編輯住宿';$('metaLabel1').firstChild.textContent=type==='flight'?'去程航班':'飯店名稱';$('metaLabel2').firstChild.textContent=type==='flight'?'回程航班':'住宿資訊';$('meta1').value=data[type][0];$('meta2').value=data[type][1];$('metaDialog').showModal()}function saveMeta(){if(!window.canEdit)return;data[metaType]=[$('meta1').value,$('meta2').value];save();render();$('metaDialog').close()}function exportData(){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='busan-diary-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}function importData(e){if(!window.canEdit)return;const f=e.target.files[0];if(!f)return;const reader=new FileReader();reader.onload=()=>{try{const d=JSON.parse(reader.result);if(!Array.isArray(d.days)||d.days.length!==3||!Array.isArray(d.todo)||!Array.isArray(d.flight)||!Array.isArray(d.stay))throw Error();if(confirm('匯入將覆蓋目前資料，確定嗎？')){data=d;save();render()}}catch{alert('備份檔格式不正確')}};reader.readAsText(f);e.target.value=''}function countdown(){const now=new Date(),target=new Date('2026-11-06T00:00:00+09:00'),days=Math.ceil((target-now)/86400000);$('countdown').textContent=days>0?`${days} 天`:days===0?'今天出發！':'旅程已開始 ♡'}countdown();render();
 
 // V30: travel expense ledger. Expense metadata only is synced through existing trip document.
+
 function expList(){return Array.isArray(data.expenses)?data.expenses:[]}
+function expPeople(){const p=data.expensePeople;return Array.isArray(p)&&p.length===2?p:['我','朋友']}
 function moneyFmt(amount,currency){return (currency==='KRW'?'₩':'NT$')+Number(amount).toLocaleString('zh-TW',{maximumFractionDigits:currency==='KRW'?0:2})}
+function expenseCents(v){return Math.round(Number(v)*100)}
+function expOptions(){
+ const people=expPeople();
+ for(const id of ['expRegistrar','expPayer']){
+  const sel=document.getElementById(id);if(!sel)continue;
+  const prev=sel.value;sel.replaceChildren();
+  people.forEach((name,i)=>{const opt=document.createElement('option');opt.value=String(i);opt.textContent=name;sel.append(opt)});
+  if(['0','1'].includes(prev))sel.value=prev;
+ }
+ document.getElementById('expShareLabel0').textContent=people[0]+' 應付';
+ document.getElementById('expShareLabel1').textContent=people[1]+' 應付';
+}
+function updateExpensePeople(){
+ if(!window.canEdit){renderExpenses();return}
+ const a=document.getElementById('expPerson0').value.trim(),b=document.getElementById('expPerson1').value.trim();
+ if(!a||!b||a===b){alert('請輸入兩個不同的旅伴名稱');renderExpenses();return}
+ data.expensePeople=[a,b];save();renderExpenses();
+}
+function updateExpenseSplitFields(){
+ const mode=document.getElementById('expSplitMode').value;
+ document.getElementById('expCustomSplit').style.display=mode==='custom'?'grid':'none';
+ const amount=Number(document.getElementById('expAmount').value)||0;
+ const curr=document.getElementById('expCurrency').value;
+ const names=expPeople(),payer=Number(document.getElementById('expPayer').value)||0;
+ let shares;
+ if(mode==='equal'){const half=Math.floor(expenseCents(amount)/2)/100;shares=[half,Math.round((amount-half)*100)/100]}
+ else if(mode==='payer')shares=payer===0?[amount,0]:[0,amount];
+ else shares=[Number(document.getElementById('expShare0').value)||0,Number(document.getElementById('expShare1').value)||0];
+ const preview=document.getElementById('expSplitPreview');
+ preview.textContent=names.map((n,i)=>n+' 應付 '+moneyFmt(shares[i],curr)).join(' ｜ ')+(mode==='custom'&&Math.abs(expenseCents(shares[0])+expenseCents(shares[1])-expenseCents(amount))>0?' ⚠ 合計必須等於消費總額':'');
+}
 function renderExpenses(){
+ const people=expPeople();
+ document.getElementById('expPerson0').value=people[0];document.getElementById('expPerson1').value=people[1];
+ expOptions();
  const krw=expList().filter(x=>x.currency==='KRW').reduce((a,x)=>a+Number(x.amount||0),0);
  const twd=expList().filter(x=>x.currency==='TWD').reduce((a,x)=>a+Number(x.amount||0),0);
  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v};
  set('expKrw',moneyFmt(krw,'KRW'));set('expTwd',moneyFmt(twd,'TWD'));set('expCount',String(expList().length));
+ const settlement=document.getElementById('expSettlement');settlement.replaceChildren();
+ const title=document.createElement('h3');title.textContent='💞 兩人分帳結算';settlement.append(title);
+ for(const currency of ['KRW','TWD']){
+  let net=[0,0],unallocated=0;
+  for(const x of expList().filter(x=>x.currency===currency)){
+   if(!Array.isArray(x.shares)||x.shares.length!==2||![0,1].includes(x.payer)){unallocated++;continue}
+   const amount=expenseCents(x.amount),s0=expenseCents(x.shares[0]),s1=expenseCents(x.shares[1]);
+   if(s0+s1!==amount){unallocated++;continue}
+   net[x.payer]+=amount;net[0]-=s0;net[1]-=s1;
+  }
+  const div=document.createElement('div');div.className='exp-stat';div.style.marginTop='8px';
+  const h=document.createElement('strong');h.style.fontSize='1rem';h.textContent=currency==='KRW'?'🇰🇷 韓幣':'🇹🇼 台幣';div.append(h);
+  const line=document.createElement('div');const cents=net[0],amount=Math.abs(cents)/100;
+  line.textContent=cents>0?people[1]+' 應付給 '+people[0]+' '+moneyFmt(amount,currency):cents<0?people[0]+' 應付給 '+people[1]+' '+moneyFmt(amount,currency):'目前無需互相付款';
+  div.append(line);
+  if(unallocated){const note=document.createElement('small');note.className='exp-note';note.textContent='有 '+unallocated+' 筆舊帳／未分帳紀錄，不計入結算';div.append(note)}
+  settlement.append(div);
+ }
  const root=document.getElementById('expEntries');if(!root)return;root.replaceChildren();
  const entries=expList().map((v,i)=>({...v,_idx:i})).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
  if(!entries.length){const p=document.createElement('p');p.className='exp-note';p.textContent='尚未記帳，拍張收據或手動新增第一筆吧 ♡';root.append(p)}
@@ -356,28 +423,43 @@ function renderExpenses(){
   const row=document.createElement('div');row.className='exp-row';
   const desc=document.createElement('div');
   const top=document.createElement('strong');top.textContent=(x.name||'未命名')+' · '+moneyFmt(x.amount,x.currency);
-  const bottom=document.createElement('div');bottom.className='exp-note';bottom.textContent=[x.date,x.category,x.memo].filter(Boolean).join(' · ');
+  const bottom=document.createElement('div');bottom.className='exp-note';
+  const details=[x.date,x.category,x.memo];
+  if([0,1].includes(x.registrar))details.push('登記：'+people[x.registrar]);
+  if([0,1].includes(x.payer))details.push('付款：'+people[x.payer]);
+  if(Array.isArray(x.shares)&&x.shares.length===2)details.push('分攤：'+people[0]+' '+moneyFmt(x.shares[0],x.currency)+'／'+people[1]+' '+moneyFmt(x.shares[1],x.currency));
+  bottom.textContent=details.filter(Boolean).join(' · ');
   desc.append(top,bottom);row.append(desc);
   if(window.canEdit){const btn=document.createElement('button');btn.type='button';btn.textContent='刪除';btn.onclick=()=>deleteExpense(x._idx);row.append(btn)}
   root.append(row);
  }
+ updateExpenseSplitFields();
 }
 function toggleExpenseForm(){
  if(!window.canEdit){alert('請先登入授權編輯者帳號');return}
  const f=document.getElementById('expFormWrap');f.style.display=f.style.display==='none'?'block':'none';
  document.getElementById('expScanStatus').textContent='';
  document.getElementById('expPreview').style.display='none';
+ expOptions();updateExpenseSplitFields();
 }
 function saveExpense(){
  if(!window.canEdit){alert('請先登入授權編輯者帳號');return}
  const name=document.getElementById('expName').value.trim(),amount=Number(document.getElementById('expAmount').value);
  const date=document.getElementById('expDate').value,currency=document.getElementById('expCurrency').value;
  if(!name||!Number.isFinite(amount)||amount<=0||!date||!['KRW','TWD'].includes(currency)){alert('請填寫日期、項目、正確金額與幣別');return}
+ const payer=Number(document.getElementById('expPayer').value),registrar=Number(document.getElementById('expRegistrar').value);
+ if(![0,1].includes(payer)||![0,1].includes(registrar)){alert('請選擇登記者及付款者');return}
+ const mode=document.getElementById('expSplitMode').value,total=expenseCents(amount);
+ let shares;
+ if(mode==='equal'){const half=Math.floor(total/2);shares=[half/100,(total-half)/100]}
+ else if(mode==='payer')shares=payer===0?[amount,0]:[0,amount];
+ else shares=[Number(document.getElementById('expShare0').value),Number(document.getElementById('expShare1').value)];
+ if(shares.some(x=>!Number.isFinite(x)||x<0)||shares.reduce((a,x)=>a+expenseCents(x),0)!==total){alert('兩人應付金額必須等於消費總額');return}
  if(!Array.isArray(data.expenses))data.expenses=[];
- data.expenses.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),date,name,amount,currency,category:document.getElementById('expCategory').value,memo:document.getElementById('expMemo').value.trim()});
+ data.expenses.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),date,name,amount,currency,category:document.getElementById('expCategory').value,memo:document.getElementById('expMemo').value.trim(),registrar,payer,shares,splitMode:mode});
  save();renderExpenses();document.getElementById('expFormWrap').style.display='none';
- for(const id of ['expName','expAmount','expMemo'])document.getElementById(id).value='';
- document.getElementById('expScanStatus').textContent='✓ 已加入旅費小帳本';
+ for(const id of ['expName','expAmount','expMemo','expShare0','expShare1'])document.getElementById(id).value='';
+ document.getElementById('expScanStatus').textContent='✓ 已加入旅費小帳本並更新分帳結算';
 }
 function deleteExpense(i){
  if(!window.canEdit)return;

@@ -325,6 +325,12 @@ function computeDaySchedule(which){
  const buffer=validMinute(data.day1FlightBuffer)??60;
  const transfer=validMinute(data.day1ToBusanMin)??120;
  if(which===0)start=takeoff;
+ // The first fixed stop defines the start of the day's actual itinerary.
+ // A later day-start preference must not fabricate a 60-minute delay at that first stop.
+ if(which!==0 && arr.length && arr[0].timeMode==='fixed'){
+  const firstAnchor=minutesOf(arr[0].time);
+  if(firstAnchor!==null)start=firstAnchor;
+ }
  const arrivals=[],warnings=[],departures=[];let cursor=start;
  for(let i=0;i<arr.length;i++){
   const p=arr[i];
@@ -337,7 +343,7 @@ function computeDaySchedule(which){
    // Fixed appointments are same-day anchors. Never silently roll an earlier time to tomorrow.
    // Arriving exactly on time is valid; short lead time alone is not a conflict.
    const target=fixed;
-   if(cursor>target){
+   if(i>0&&cursor>target){
     const late=cursor-target;
     warnings[i]='⚠ 預估晚到 '+late+' 分鐘；固定預約 '+clockOf(target)+' 不變，請調整前段行程';
    }
